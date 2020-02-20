@@ -1,0 +1,37 @@
+# https://taskfile.dev
+
+version: "2"
+
+vars:
+  config_path: ./ubuntu-18.04.json
+
+  # Configure your var paths here with the `-var-file="./path/file.json" flag`
+  # or any other packer options you need to pass into commands
+  packer_args: '-var-file="./config.json"'
+
+  ubuntu_18_04_iso_name: ubuntu-18.04.4-server-amd64.iso
+  ubuntu_18_04_iso_url: http://cdimage.ubuntu.com/releases/18.04/release/ubuntu-18.04.4-server-amd64.iso
+
+tasks:
+  init:
+    cmds:
+      - cp ./example-vars.json ./config.json
+    status:
+      - test -f config.json
+
+  build:
+    cmds:
+      - packer build {{.packer_args}} {{.config_path}}
+
+  validate:
+    cmds:
+      - packer validate {{.packer_args}} {{.config_path}}
+
+  cleanup-isos:
+    cmds:
+      - rm -rf ./isos
+
+  ubuntu-18-iso:
+    cmds:
+      - mkdir -p ./isos
+      - curl -C - -o ./isos/{{.ubuntu_18_04_iso_name}} {{.ubuntu_18_04_iso_url}}

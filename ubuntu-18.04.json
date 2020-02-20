@@ -1,0 +1,100 @@
+{
+	"builders": [
+		{
+			"type": "proxmox",
+			"proxmox_url": "https://{{user `proxmox_host`}}/api2/json",
+			"insecure_skip_tls_verify": true,
+			"username": "{{user `proxmox_api_user`}}",
+			"password": "{{user `proxmox_api_password`}}",
+
+			"vm_name": "{{user `template_name`}}",
+			"vm_id": "{{ user `vmid` }}",
+			"node": "{{user `proxmox_node_name`}}",
+			"cores": "{{ user `cores` }}",
+			"sockets": "{{ user `sockets` }}",
+			"memory": "{{ user `memory` }}",
+			"os": "l26",
+			"network_adapters": [
+				{
+					"model": "virtio",
+					"bridge": "vmbr0"
+				}
+			],
+			"disks": [
+				{
+					"type": "scsi",
+					"disk_size": "{{ user `disk_size`}}",
+					"storage_pool": "{{user `datastore`}}",
+					"storage_pool_type": "{{user `datastore_type`}}",
+					"format": "raw",
+					"cache_mode": "writeback"
+				}
+			],
+
+			"ssh_timeout": "90m",
+			"ssh_password": "{{ user `ssh_password` }}",
+			"ssh_username": "{{ user `ssh_username` }}",
+
+			"qemu_agent": true,
+			"unmount_iso": true,
+
+			"iso_file": "{{user `iso`}}",
+			"http_directory": "./http",
+			"template_description": "{{ user `template_description` }}",
+
+			"boot_wait": "10s",
+			"boot_command": [
+				"{{ user `boot_command_prefix` }}",
+				"/install/vmlinuz ",
+				"auto ",
+				"console-setup/ask_detect=false ",
+				"debconf/frontend=noninteractive ",
+				"debian-installer={{ user `locale` }} ",
+				"hostname={{ user `hostname` }} ",
+				"fb=false ",
+				"grub-installer/bootdev=/dev/sda<wait> ",
+				"initrd=/install/initrd.gz ",
+				"kbd-chooser/method=us ",
+				"keyboard-configuration/modelcode=SKIP ",
+				"locale={{ user `locale` }} ",
+				"noapic ",
+				"passwd/username={{ user `ssh_username` }} ",
+				"passwd/user-fullname={{ user `ssh_fullname` }} ",
+				"passwd/user-password={{ user `ssh_password` }} ",
+				"passwd/user-password-again={{ user `ssh_password` }} ",
+				"preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/{{ user `preseed.cfg` }}",
+				"-- <enter>"
+			]
+		}
+	],
+	"provisioners": [
+		{
+			"pause_before": "20s",
+			"type": "shell",
+			"environment_vars": ["DEBIAN_FRONTEND=noninteractive"],
+			"inline": [
+				"date > provision.txt",
+				"sudo apt-get update",
+				"sudo apt-get -y upgrade",
+				"sudo apt-get -y dist-upgrade",
+				"sudo apt-get -y install linux-generic linux-headers-generic linux-image-generic",
+				"sudo apt-get -y install qemu-guest-agent cloud-init",
+				"sudo apt-get -y install procps iputils-ping telnet netcat mc wget curl dnsutils iproute2 vim tcpdump",
+				"exit 0"
+			]
+		}
+	],
+	"post-processors": [
+		{
+			"type": "shell-local",
+			"inline": [
+				"ssh root@{{user `proxmox_host`}} qm set {{user `vmid`}} --scsihw virtio-scsi-pci",
+				"ssh root@{{user `proxmox_host`}} qm set {{user `vmid`}} --ide2 {{user `datastore`}}:cloudinit",
+				"ssh root@{{user `proxmox_host`}} qm set {{user `vmid`}} --boot c --bootdisk scsi0",
+				"ssh root@{{user `proxmox_host`}} qm set {{user `vmid`}} --ciuser     {{ user `ssh_username` }}",
+				"ssh root@{{user `proxmox_host`}} qm set {{user `vmid`}} --cipassword {{ user `ssh_password` }}",
+				"ssh root@{{user `proxmox_host`}} qm set {{user `vmid`}} --vga std"
+			]
+		}
+	]
+}
