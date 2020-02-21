@@ -62,7 +62,7 @@
 				"passwd/user-fullname={{ user `ssh_fullname` }} ",
 				"passwd/user-password={{ user `ssh_password` }} ",
 				"passwd/user-password-again={{ user `ssh_password` }} ",
-				"preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/{{ user `preseed_file` }}",
+				"preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/{{ user `preseed_file` }} ",
 				"-- <enter>"
 			]
 		}
